@@ -34,7 +34,7 @@ const or = canvas.width / canvas.height // 투명영역 비율
 const ir = img.width / img.height // 이미지 비율
 // const ratio = Math.min(canvas.width/img.width, canvas.height/img.height) // 종횡비 기준
 
-let mode = '';
+let align = '';
 let iwidth = 0;
 let iheight = 0;
 let ix = 0;
@@ -46,7 +46,7 @@ let maxX = 0;
 let maxY = 0;
 
 if (or < ir) { // 높이 Fill
-  mode = 'vertical'
+  align = 'vertical'
   iwidth = (img.width * canvas.height) / img.height;
   iheight = canvas.height;
   ix = (canvas.width - iwidth) / 2;
@@ -56,7 +56,7 @@ if (or < ir) { // 높이 Fill
   ctx.drawImage(img, ix, 0, iwidth, iheight);
 } 
 if (or > ir) { // 너비 Fill
-  mode = 'horizontal'
+  align = 'horizontal'
   iwidth = canvas.width;
   iheight = (img.height * canvas.width) / img.width;
   ix = 0;
@@ -72,14 +72,14 @@ addDragControl(canvas, {
   },
   move: (ev) => {
     console.log('pointer move', ev)
-    if (mode === 'vertical') {
+    if (align === 'vertical') {
       ix += ev.dx;
       if (ix >= minX) ix = minX;
       if (ix <= maxX) ix = maxX;
       ctx.clearRect(0, 0, iwidth, iheight);
       ctx.drawImage(img, ix, 0, iwidth, iheight);
     } 
-    if (mode === 'horizontal') {
+    if (align === 'horizontal') {
       iy += ev.dy;
       if (iy >= minY) iy = minY;
       if (iy <= maxY) iy = maxY;
@@ -99,14 +99,14 @@ addTouchControl(canvas, {
   },
   move: (ev) => {
     // console.log('touch move', ev)
-    if (mode === 'vertical') {
+    if (align === 'vertical') {
       ix += ev.dx;
       if (ix >= minX) ix = minX;
       if (ix <= maxX) ix = maxX;
       ctx.clearRect(0, 0, iwidth, iheight);
       ctx.drawImage(img, ix, 0, iwidth, iheight);
     } 
-    if (mode === 'horizontal') {
+    if (align === 'horizontal') {
       iy += ev.dy;
       if (iy >= minY) iy = minY;
       if (iy <= maxY) iy = maxY;

@@ -1,4 +1,5 @@
 import addDragControl from "./drag-control";
+import addTouchControl from "./touch-control";
 
 export class CanvasComponent {
   canvas!: HTMLCanvasElement;
@@ -110,10 +111,20 @@ class TransformControl {
   constructor(target: CanvasComponent) {
     addDragControl(target.canvas, {
       down: (ev) => {
-        
+        console.log(ev)
+        return true
       },
       move: (ev, payload) => {
-        console.log('pointer', ev)
+        target.clearRect();
+        target.drawImage({x: ev.dx, y: ev.dy});
+      },
+      up: (ev) => {},
+    });
+    addTouchControl(target.canvas, {
+      down: (ev) => {
+        return true
+      },
+      move: (ev) => {
         target.clearRect();
         target.drawImage({x: ev.dx, y: ev.dy});
       },
