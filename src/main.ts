@@ -1,7 +1,6 @@
 import './style.css'
 import addDragControl from './drag-control';
 import addTouchControl from './touch-control';
-import TransformControl, { CanvasComponent } from './transform-control';
 import { loadImage } from './utils';
 
 const app = document.getElementById('app') as HTMLDivElement;
