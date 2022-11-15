@@ -1,7 +1,7 @@
 import './style.css'
 import addDragControl from './drag-control';
-import addTouchControl from './touch-control';
 import { loadImage } from './utils';
+import { FramePhoto } from './transform';
 
 const app = document.getElementById('app') as HTMLDivElement;
 const assets = {
@@ -21,105 +21,32 @@ const assetsLoad = Object.entries(assets).map(async (assets) => {
 });
 await Promise.all(assetsLoad);
 
-const img = assetsMap.get('photo3') as HTMLImageElement;
+const img = assetsMap.get('photo4') as HTMLImageElement;
 const frame1 = assetsMap.get('frame1') as HTMLImageElement;
 const frame2 = assetsMap.get('frame2') as HTMLImageElement;
 const frame3 = assetsMap.get('frame3') as HTMLImageElement;
 
-const canvas = Object.assign(document.createElement('canvas'), {}) as HTMLCanvasElement;
-const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
-app.appendChild(canvas);
+const frameCanvas = [
+  frame1,
+  frame2,
+  frame3,
+].map((frame) => {
+  const photoConfig = { img, width: 932, height: 952, x: 134, y: 509 };
+  const framePhoto = new FramePhoto(photoConfig);
+  const canvas = Object.assign(document.createElement('canvas'), {width: 1200, height: 1800, style: 'width: 300px;'}) as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+  ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(framePhoto.canvas, photoConfig.x, photoConfig.y, photoConfig.width, photoConfig.height);
 
-canvas.width = 1200;
-canvas.height = 1800;
-ctx.drawImage(frame1, 0, 0, canvas.width, canvas.height);
-
-const photoSize = { width: 932, height: 952, x: 134, y: 509 };
-const icanvas = Object.assign(document.createElement('canvas'), { width: photoSize.width, height: photoSize.height });
-const ictx = icanvas.getContext('2d') as CanvasRenderingContext2D;
-const or = icanvas.width / icanvas.height;
-const ir = img.width / img.height;
-let align = '';
-let iwidth = 0;
-let iheight = 0;
-let ix = 0;
-let iy = 0;
-
-let minX = 0;
-let minY = 0;
-let maxX = 0;
-let maxY = 0;
-
-if (or < ir) { // 높이 Fill
-  align = 'vertical';
-  iwidth = (img.width * icanvas.height) / img.height;
-  iheight = icanvas.height;
-  ix = (icanvas.width - iwidth) / 2;
-  iy = 0;
-  maxX = icanvas.width - iwidth;
-  ictx.drawImage(img, ix, 0, iwidth, iheight);
-}
-if (or > ir) { // 너비 Fill
-  align = 'horizontal';
-  iwidth = icanvas.width;
-  iheight = (img.height * icanvas.width) / img.width;
-  ix = 0;
-  iy = (icanvas.height - iheight) / 2;
-  maxY = icanvas.height - iheight;
-  ictx.drawImage(img, 0, iy, iwidth, iheight);
-} 
-
-ctx.drawImage(icanvas, photoSize.x, photoSize.y, icanvas.width, icanvas.height);
-
-addDragControl(canvas, {
-  down: (ev) => {
-    // console.log('pointer down', ev);
-    return true;
-  },
-  move: (ev) => {
-    if (align === 'vertical') {
-      ix += ev.dx;
-      if (ix >= minX) ix = minX;
-      if (ix <= maxX) ix = maxX;
-      ictx.drawImage(img, ix, 0, iwidth, iheight);
-      ctx.clearRect(photoSize.x, photoSize.y, icanvas.width, icanvas.height);
-      ctx.drawImage(icanvas, photoSize.x, photoSize.y, icanvas.width, icanvas.height);
-    } 
-    if (align === 'horizontal') {
-      iy += ev.dy;
-      if (iy >= minY) iy = minY;
-      if (iy <= maxY) iy = maxY;
-      ictx.drawImage(img, 0, iy, iwidth, iheight);
-      ctx.clearRect(photoSize.x, photoSize.y, icanvas.width, icanvas.height);
-      ctx.drawImage(icanvas, photoSize.x, photoSize.y, icanvas.width, icanvas.height);
-    }
-  },
-  up: (ev) => {},
-})
-
-addTouchControl(canvas, {
-  down: (ev) => {
-    // console.log('touch start', ev)
-    return true;
-  },
-  move: (ev) => {
-    if (align === 'vertical') {
-      ix += ev.dx;
-      if (ix >= minX) ix = minX;
-      if (ix <= maxX) ix = maxX;
-      ictx.drawImage(img, ix, 0, iwidth, iheight);
-      ctx.clearRect(photoSize.x, photoSize.y, icanvas.width, icanvas.height);
-      ctx.drawImage(icanvas, photoSize.x, photoSize.y, icanvas.width, icanvas.height);
-    } 
-    if (align === 'horizontal') {
-      iy += ev.dy;
-      if (iy >= minY) iy = minY;
-      if (iy <= maxY) iy = maxY;
-      ictx.drawImage(img, 0, iy, iwidth, iheight);
-      ctx.clearRect(photoSize.x, photoSize.y, icanvas.width, icanvas.height);
-      ctx.drawImage(icanvas, photoSize.x, photoSize.y, icanvas.width, icanvas.height);
-    }
-  },
-  up: (ev) => {},
-})
-
+  addDragControl(canvas, {
+    down: () => { return true },
+    move: (ev) => {
+      framePhoto.drawImage({x: ev.dx, y: ev.dy});
+      ctx.clearRect(photoConfig.x, photoConfig.y, photoConfig.width, photoConfig.height);
+      ctx.drawImage(framePhoto.canvas, photoConfig.x, photoConfig.y, photoConfig.width, photoConfig.height);
+    },
+    up: () => {},
+  });
+  return canvas;
+});
+frameCanvas.forEach(canvas => app.appendChild(canvas));

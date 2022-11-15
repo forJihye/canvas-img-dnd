@@ -64,7 +64,6 @@ class TouchControl {
   }
 }
 
-
 const touchControl = new TouchControl();
 const addTouchControl = (
   target: HTMLElement,
@@ -78,6 +77,7 @@ const addTouchControl = (
   const {down, move, up, cancel } = handlers;
   const downHandler = (ev: TouchEvent) => {
     ev.preventDefault();
+    ev.stopPropagation();
     const payload = down(ev as TouchStartEvent);
     if (payload === null || payload === undefined) {
       touchControl.setMove();
