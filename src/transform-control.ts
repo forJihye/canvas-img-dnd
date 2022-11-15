@@ -1,16 +1,18 @@
+import addDragControl from "./drag-control";
+
 export class CanvasComponent {
   canvas!: HTMLCanvasElement;
   ctx!: CanvasRenderingContext2D;
   img!: HTMLImageElement;
 
+  align!: 'vertical'|'horizontal'|'default';
   originalRatio: number = 0;
   transformRatio: number = 0;
-  transformMode!: 'vertical'|'horizontal'|'none';
 
-  width!: number;
-  height!: number;
   x: number = 0;
   y: number = 0;
+  width!: number;
+  height!: number;
   constructor(img: HTMLImageElement, options: {width: number; height: number;}) {
     this.img = img;
     this.canvas = document.createElement('canvas') as HTMLCanvasElement;
@@ -19,50 +21,61 @@ export class CanvasComponent {
     this.canvas.height = options.height;
 
     this.setRatio();
-    this.setTransformMode();
-    this.setImageSize();
+    this.transformAlign();
+    this.transform();
     this.drawImage({x: 0, y: 0});
   }
   get canvasSize() {
-    return {width: this.canvas.width, height: this.canvas.height}
+    return {
+      width: this.canvas.width, 
+      height: this.canvas.height
+    }
   }
   get imageSize() {
     return {
       width: this.width,
       height: this.height,
       x: this.x,
-      y: this.y
+      y: this.y,
+      min: {
+        x: 0,
+        y: 0,
+      },
+      max: {
+        x: this.align === 'horizontal' ? 0 : this.canvas.width - this.width,
+        y: this.align === 'vertical' ? 0 : this.canvas.height - this.height,
+      }
     }
   }
   private setRatio() {
     this.originalRatio = this.canvas.width / this.canvas.height;
     this.transformRatio = this.img.width / this.img.height;
   }
-  private setTransformMode() {
+  private transformAlign() {
     if (this.originalRatio < this.transformRatio) {
-      this.transformMode = 'vertical'
+      this.align = 'vertical'
     } 
     if (this.originalRatio > this.transformRatio) {
-      this.transformMode = 'horizontal'
+      this.align = 'horizontal'
     }
     if (this.originalRatio === this.transformRatio) {
-      this.transformMode = 'none';
+      this.align = 'default';
     }
   }
-  private setImageSize() {
-    if (this.transformMode === 'vertical') {
+  private transform() {
+    if (this.align === 'vertical') {
       this.width = (this.img.width * this.canvas.width) / this.img.height;
       this.height = this.canvas.height;
       this.x = (this.canvas.width - this.width) / 2;
       this.y = 0;
     }
-    if (this.transformMode === 'horizontal') {
+    if (this.align === 'horizontal') {
       this.width = this.canvas.width;
       this.height = (this.img.height * this.canvas.width) / this.img.width;
       this.x = 0;
       this.y = (this.canvas.height - this.height) / 2;
     }
-    if (this.transformMode === 'none') {
+    if (this.align === 'default') {
       this.width = this.canvas.width;
       this.height = this.canvas.height;
       this.x = 0;
@@ -70,19 +83,46 @@ export class CanvasComponent {
     }
   }
   drawImage(position: {x: number; y: number}) {
-    this.x += position.x;
-    this.y += position.y;
-    console.log(this.x, this.y, this.width, this.height)
+    const {min, max} = this.imageSize;
+    if (this.align === 'vertical') {
+      this.x += position.x;
+      this.x >= min.x && (this.x = min.x);
+      this.x <= max.x && (this.x = max.x);
+    }
+    if (this.align === 'horizontal') {
+      this.y += position.y;
+      this.y >= min.y && (this.y = min.y);
+      this.y <= max.y && (this.y = max.y);
+    }
     this.ctx.drawImage(this.img, this.x, this.y, this.width, this.height);
+  }
+  clearRect() {
+    this.ctx.clearRect(0, 0, this.width, this.height)
   }
 }
 
 class TransformControl {
   interaction!: 'pointer' | 'touch';
-  constructor() {
-    
+  items: CanvasComponent[] = [];
+
+  dragListener: (() => void) | null = null;
+  touchListener: (() => void) | null = null;
+  constructor(target: CanvasComponent) {
+    addDragControl(target.canvas, {
+      down: (ev) => {
+        
+      },
+      move: (ev, payload) => {
+        console.log('pointer', ev)
+        target.clearRect();
+        target.drawImage({x: ev.dx, y: ev.dy});
+      },
+      up: (ev) => {},
+    })
+  }
+  push(item: CanvasComponent) {
+    this.items.push(item);
   }
 }
-
 
 export default TransformControl;
