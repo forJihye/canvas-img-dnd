@@ -1,7 +1,6 @@
 import addDragControl from './drag-control';
 import './style.css'
 import addTouchControl from './touch-control';
-import { CanvasComponent } from './transform-control';
 import { loadImage } from './utils';
 
 const app = document.getElementById('app') as HTMLDivElement;
@@ -21,14 +20,11 @@ const assetsLoad = Object.entries(assets).map(async (assets) => {
 await Promise.all(assetsLoad);
 
 const img = assetsMap.get('photo3') as HTMLImageElement;
-const canvasComponent = new CanvasComponent(img, { width: 960, height: 960 })
-app.appendChild(canvasComponent.canvas);
-
-
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
 canvas.width = 960;
 canvas.height = 960;
+app.appendChild(canvas);
 
 const or = canvas.width / canvas.height // 투명영역 비율
 const ir = img.width / img.height // 이미지 비율
@@ -87,7 +83,7 @@ addDragControl(canvas, {
       ctx.drawImage(img, 0, iy, iwidth, iheight);
     }
   },
-  up: (ev) => {
+  up: () => {
     // console.log('pointer up', ev)
   },
 })
@@ -114,7 +110,7 @@ addTouchControl(canvas, {
       ctx.drawImage(img, 0, iy, iwidth, iheight);
     }
   },
-  up: (ev) => {
+  up: () => {
     // console.log('touch up', ev)
   }
 })
