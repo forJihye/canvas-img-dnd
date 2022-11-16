@@ -1,116 +1,114 @@
-import './style.css';
+import './style.css'
+import Assets from './assets-load';
+import FramePhoto from './frame-photo';
 import addDragControl from './drag-control';
-import addTouchControl from './touch-control';
-import { loadImage } from './utils';
 
 const app = document.getElementById('app') as HTMLDivElement;
-const assets = {
-  photo3: "https://media.hashsn.app/uploaded-posts/de575236-7361-45a0-8065-1b2c2906dda8.jpg",
-  photo4: "https://media.hashsn.app/uploaded-posts/fb740d1c-4238-4d2d-9f8a-90094fd76ddc.jpg",
-  // photo2: "https://picsum.photos/1440/960",
+const assetsConfig = {
+  'frame-default': {
+    type: "frame",
+    data: "https://hashsnap-static.s3.ap-northeast-2.amazonaws.com/file/kiosk-editor/hashsnap-template.png"
+  },
+  "frame-left": {
+    type: "frame",
+    data: "https://hashsnap-static.s3.ap-northeast-2.amazonaws.com/kiosk-editor/221104_vktest_mini/template/frame3x4-1_1667870051714.png",
+  },
+  "frame-right": {
+    type: "frame",
+    data: "https://hashsnap-static.s3.ap-northeast-2.amazonaws.com/kiosk-editor/221104_vktest_mini/template/frame3x4-2_1667870051705.png",
+  },
+  'photo1': {
+    type: "image",
+    data: "https://media.hashsn.app/uploaded-posts/de575236-7361-45a0-8065-1b2c2906dda8.jpg",
+  },
+  'photo2': {
+    type: 'image',
+    data: "https://media.hashsn.app/uploaded-posts/1cf519ed-d10d-4ba6-ba3e-f736f3ca412a.jpg"
+  },
+  'photo3': {
+    type: 'image',
+    data: "https://media.hashsn.app/uploaded-posts/071a563e-8300-4dbf-b1a0-e0b2d0da530e.jpg"
+  }
 }
 
-const assetsMap: Map<string, (HTMLImageElement|null)> = new Map();
-const assetsLoad = Object.entries(assets).map(async (assets) => {
-  const [name, data] = assets;
-  const img = await loadImage(data) as HTMLImageElement;
-  assetsMap.set(name, img);
-  return [name, img];
-});
-await Promise.all(assetsLoad);
-
-const img = assetsMap.get('photo3') as HTMLImageElement;
-const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
-canvas.width = 960;
-canvas.height = 960;
-app.appendChild(canvas);
-
-const or = canvas.width / canvas.height // 투명영역 비율
-const ir = img.width / img.height // 이미지 비율
-// const ratio = Math.min(canvas.width/img.width, canvas.height/img.height) // 종횡비 기준
-
-let align = '';
-let iwidth = 0;
-let iheight = 0;
-let ix = 0;
-let iy = 0;
-
-let minX = 0;
-let minY = 0;
-let maxX = 0;
-let maxY = 0;
-
-if (or < ir) { // 높이 Fill
-  align = 'vertical'
-  iwidth = (img.width * canvas.height) / img.height;
-  iheight = canvas.height;
-  ix = (canvas.width - iwidth) / 2;
-  iy = 0;
-  maxX = canvas.width - iwidth;
-  console.log(ix)
-  ctx.drawImage(img, ix, 0, iwidth, iheight);
-} 
-if (or > ir) { // 너비 Fill
-  align = 'horizontal'
-  iwidth = canvas.width;
-  iheight = (img.height * canvas.width) / img.width;
-  ix = 0;
-  iy = (canvas.height - iheight) / 2;
-  maxY = canvas.height - iheight;
-  ctx.drawImage(img, 0, iy, canvas.width, iheight);
-} 
-
-addDragControl(canvas, {
-  down: (ev) => {
-    console.log('pointer down', ev.type, ev)
-    return true;
-  },
-  move: (ev) => {
-    console.log('pointer move', ev)
-    if (align === 'vertical') {
-      ix += ev.dx;
-      if (ix >= minX) ix = minX;
-      if (ix <= maxX) ix = maxX;
-      ctx.clearRect(0, 0, iwidth, iheight);
-      ctx.drawImage(img, ix, 0, iwidth, iheight);
-    } 
-    if (align === 'horizontal') {
-      iy += ev.dy;
-      if (iy >= minY) iy = minY;
-      if (iy <= maxY) iy = maxY;
-      ctx.clearRect(0, 0, iwidth, iheight);
-      ctx.drawImage(img, 0, iy, iwidth, iheight);
+const frameConfig = {
+  frame: [
+    {
+      assetName: 'frame-left',
+      width: 900,
+      height: 1200,
+      left: 0,
+      top: 0
+    },
+    {
+      assetName: 'frame-right',
+      width: 900,
+      height: 1200,
+      left: 900,
+      top: 0
     }
-  },
-  up: () => {
-    // console.log('pointer up', ev)
-  },
-})
+  ],
+  cropWidth: 1800,
+  cropHeight: 1200,
+  cropLeft: 0,
+  cropTop: 0,
+}
 
-addTouchControl(canvas, {
-  down: (ev) => {
-    console.log('touch down', ev.type, ev)
-    return true
-  },
-  move: (ev) => {
-    // console.log('touch move', ev)
-    if (align === 'vertical') {
-      ix += ev.dx;
-      if (ix >= minX) ix = minX;
-      if (ix <= maxX) ix = maxX;
-      ctx.clearRect(0, 0, iwidth, iheight);
-      ctx.drawImage(img, ix, 0, iwidth, iheight);
-    } 
-    if (align === 'horizontal') {
-      iy += ev.dy;
-      if (iy >= minY) iy = minY;
-      if (iy <= maxY) iy = maxY;
-      ctx.clearRect(0, 0, iwidth, iheight);
-      ctx.drawImage(img, 0, iy, iwidth, iheight);
-    }
-  },
-  up: () => {
-    // console.log('touch up', ev)
-  }
-})
+const main = async () => { try {
+  const assets = new Assets();
+  const assetsPromise = Object.entries(assetsConfig).map(async ([key, value]) => await assets.save(key, value));
+  await Promise.all(assetsPromise);
+  console.log(assets);
+
+  const photo = assets.get('photo3')?.data as HTMLImageElement;
+  const halfFrame = frameConfig.frame.map((config) => {
+    const {assetName, width, height, left, top} = config;
+    const frame = assets.get(assetName)?.data;
+    return { img: frame.image, x: left, y: top, width, height, alphaRect: frame.alphaRect }
+  });
+
+  const canvas = Object.assign(document.createElement('canvas'), {width: frameConfig.cropWidth, height: frameConfig.cropHeight}) as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+  app.appendChild(canvas);
+
+  const frameCanvas = halfFrame.map(frame => {
+    const photoRect = {
+      x: frame.alphaRect.left,
+      y: frame.alphaRect.top,
+      width: frame.alphaRect.width + 1,
+      height: frame.alphaRect.height + 1,
+    };
+    const framePhoto = new FramePhoto({ img: photo, ...photoRect});
+    ctx.save();
+    ctx.translate(-frameConfig.cropLeft, -frameConfig.cropTop);
+    ctx.drawImage(framePhoto.canvas, (photoRect.x + frame.x), photoRect.y, photoRect.width, photoRect.height);
+    ctx.drawImage(frame.img, frame.x, frame.y, frame.width, frame.height);
+    ctx.restore();
+    return { ...frame, photo: framePhoto };
+  });
+
+  addDragControl(canvas, {
+    down: () => { return true },
+    move: (ev) => {
+      frameCanvas.map(frame => {
+        const photoRect = {
+          x: frame.alphaRect.left,
+          y: frame.alphaRect.top,
+          width: frame.alphaRect.width + 1,
+          height: frame.alphaRect.height + 1,
+        };
+        frame.photo.drawImage({x: ev.dx, y: ev.dy});
+        ctx.clearRect((photoRect.x + frame.x), photoRect.y, photoRect.width, photoRect.height);
+        ctx.drawImage(frame.photo.canvas, (photoRect.x + frame.x), photoRect.y, photoRect.width, photoRect.height);
+      })
+    },
+    up: () => {}
+  })
+} catch(e: any) {
+  console.error(e)
+}}
+main();
+
+// framePhoto.drawImage({x: ev.dx, y: ev.dy});
+// ctx.clearRect(photoConfig.x, photoConfig.y, photoConfig.width, photoConfig.height);
+// ctx.drawImage(framePhoto.canvas, photoConfig.x, photoConfig.y, photoConfig.width, photoConfig.height);

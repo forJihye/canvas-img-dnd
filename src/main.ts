@@ -1,4 +1,4 @@
-import './style.css'
+import './style.css';
 import Assets from './assets-load';
 import FramePhoto from './frame-photo';
 import addDragControl from './drag-control';
@@ -11,11 +11,19 @@ const assetsConfig = {
   },
   "frame-left": {
     type: "frame",
-    data: "https://hashsnap-static.s3.ap-northeast-2.amazonaws.com/kiosk-editor/221104_vktest_mini/template/frame3x4-1_1667870051714.png"
+    data: "https://hashsnap-static.s3.ap-northeast-2.amazonaws.com/kiosk-editor/221104_vktest_mini/template/frame3x4-1_1667870051714.png",
+    options: {
+      left: 0,
+      top: 0
+    }
   },
   "frame-right": {
     type: "frame",
-    data: "https://hashsnap-static.s3.ap-northeast-2.amazonaws.com/kiosk-editor/221104_vktest_mini/template/frame3x4-2_1667870051705.png"
+    data: "https://hashsnap-static.s3.ap-northeast-2.amazonaws.com/kiosk-editor/221104_vktest_mini/template/frame3x4-2_1667870051705.png",
+    options: {
+      left: 900,
+      top: 0
+    }
   },
   'photo1': {
     type: "image",
@@ -31,84 +39,68 @@ const assetsConfig = {
   }
 }
 
-const frameConfig = {
-  frame: [
-    {
-      assetName: 'frame-left',
-      width: 900,
-      height: 1200,
-      left: 0,
-      top: 0
-    },
-    {
-      assetName: 'frame-right',
-      width: 900,
-      height: 1200,
-      left: 900,
-      top: 0
-    }
-  ],
-  cropWidth: 1800,
-  cropHeight: 1200,
-  cropLeft: 0,
-  cropTop: 0,
+const frameData = {
+  width: 1800,
+  height: 1200,
+  'cropped-width': 1800,
+  'cropped-height': 1200,
+  'cropped-left': 0,
+  'cropped-top': 0,
 }
-
 const main = async () => { try {
   const assets = new Assets();
   const assetsPromise = Object.entries(assetsConfig).map(async ([key, value]) => await assets.save(key, value));
   await Promise.all(assetsPromise);
   console.log(assets);
 
-  const photo = assets.get('photo3')?.data as HTMLImageElement;
-  const halfFrame = frameConfig.frame.map((config) => {
-    const {assetName, width, height, left, top} = config;
-    const frame = assets.get(assetName)?.data;
-    return { img: frame.image, x: left, y: top, width, height, alphaRect: frame.alphaRect }
-  });
-
-  const canvas = Object.assign(document.createElement('canvas'), {width: frameConfig.cropWidth, height: frameConfig.cropHeight}) as HTMLCanvasElement;
+  const canvas = Object.assign(document.createElement('canvas'), {width: frameData['cropped-width'], height: frameData['cropped-height']}) as HTMLCanvasElement;
   const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
-  app.appendChild(canvas);
 
-  const frameCanvas = halfFrame.map(frame => {
+  const photo = assets.get('photo3')?.data;
+  const frameLeft = assets.get('frame-left');
+  const frameRight = assets.get('frame-right');
+  const frameCanvas = [frameLeft, frameRight].map(frame => {
+    const {data, options} = frame;
     const photoRect = {
-      x: frame.alphaRect.left,
-      y: frame.alphaRect.top,
-      width: frame.alphaRect.width + 1,
-      height: frame.alphaRect.height + 1,
-    };
-    const framePhoto = new FramePhoto({ img: photo, ...photoRect});
+      img: photo,
+      x: data.alphaRect.left,
+      y: data.alphaRect.top,
+      width: data.alphaRect.width + 1,
+      height: data.alphaRect.height + 1,
+    }
+    const framePhoto = new FramePhoto(photoRect);
     ctx.save();
-    ctx.translate(-frameConfig.cropLeft, -frameConfig.cropTop);
-    ctx.drawImage(framePhoto.canvas, (photoRect.x + frame.x), photoRect.y, photoRect.width, photoRect.height);
-    ctx.drawImage(frame.img, frame.x, frame.y, frame.width, frame.height);
+    ctx.translate(-Number(frameData['cropped-left']), -Number(frameData['cropped-top']));
+    ctx.drawImage(framePhoto.canvas, photoRect.x + options.left, photoRect.y + options.top, photoRect.width, photoRect.height);
+    ctx.drawImage(data.image, options.left, options.top);
     ctx.restore();
-    return { ...frame, photo: framePhoto };
+    return {
+      framePhoto,
+      photoRect,
+      options
+    }
   });
 
   addDragControl(canvas, {
-    down: () => { return true },
+    down: () => {
+      return true;
+    },
     move: (ev) => {
-      frameCanvas.map(frame => {
-        const photoRect = {
-          x: frame.alphaRect.left,
-          y: frame.alphaRect.top,
-          width: frame.alphaRect.width + 1,
-          height: frame.alphaRect.height + 1,
-        };
-        frame.photo.drawImage({x: ev.dx, y: ev.dy});
-        ctx.clearRect((photoRect.x + frame.x), photoRect.y, photoRect.width, photoRect.height);
-        ctx.drawImage(frame.photo.canvas, (photoRect.x + frame.x), photoRect.y, photoRect.width, photoRect.height);
+      const {dx, dy} = ev;
+      frameCanvas.map(({framePhoto, photoRect, options}) => {
+        ctx.save();
+        ctx.translate(-Number(frameData['cropped-left']), -Number(frameData['cropped-top']));
+        framePhoto.drawImage({x: dx, y: dy});
+        ctx.clearRect(photoRect.x + options.left, photoRect.y + options.top, photoRect.width, photoRect.height);
+        ctx.drawImage(framePhoto.canvas, photoRect.x + options.left, photoRect.y + options.top, photoRect.width, photoRect.height);
+        ctx.restore();
       })
     },
     up: () => {}
-  })
-} catch(e: any) {
-  console.error(e)
+  });
+  
+  app.appendChild(canvas);
+} catch(err) {
+  console.error(err)
 }}
 main();
-
-// framePhoto.drawImage({x: ev.dx, y: ev.dy});
-// ctx.clearRect(photoConfig.x, photoConfig.y, photoConfig.width, photoConfig.height);
-// ctx.drawImage(framePhoto.canvas, photoConfig.x, photoConfig.y, photoConfig.width, photoConfig.height);

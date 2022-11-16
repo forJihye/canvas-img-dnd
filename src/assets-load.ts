@@ -9,7 +9,8 @@ class Assets extends Map<string, any> {
       const assetsFrame = new AssetsFrame(img);
       this.set(key, {
         data: assetsFrame,
-        type: value.type
+        type: value.type,
+        ...value.options && {options: value.options}
       })
     }
     else if (type === 'image') {
