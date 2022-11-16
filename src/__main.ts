@@ -1,5 +1,5 @@
+import './style.css';
 import addDragControl from './drag-control';
-import './style.css'
 import addTouchControl from './touch-control';
 import { loadImage } from './utils';
 

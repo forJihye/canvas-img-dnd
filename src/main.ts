@@ -1,52 +1,114 @@
 import './style.css'
+import Assets from './assets-load';
+import FramePhoto from './frame-photo';
 import addDragControl from './drag-control';
-import { loadImage } from './utils';
-import { FramePhoto } from './transform';
 
 const app = document.getElementById('app') as HTMLDivElement;
-const assets = {
-  photo3: "https://media.hashsn.app/uploaded-posts/de575236-7361-45a0-8065-1b2c2906dda8.jpg",
-  photo4: "https://media.hashsn.app/uploaded-posts/fb740d1c-4238-4d2d-9f8a-90094fd76ddc.jpg",
-  frame1: "https://hashsnap-static.s3.ap-northeast-2.amazonaws.com/kiosk-editor/221111_lgxb/template/lgxb_frame1_1668125330187.png",
-  frame2: "https://hashsnap-static.s3.ap-northeast-2.amazonaws.com/kiosk-editor/221111_lgxb/template/lgxb_frame2_1668125238979.png",
-  frame3: "https://hashsnap-static.s3.ap-northeast-2.amazonaws.com/kiosk-editor/221111_lgxb/template/lgxb_frame3_1668125238987.png",
+const assetsConfig = {
+  'frame-default': {
+    type: "frame",
+    data: "https://hashsnap-static.s3.ap-northeast-2.amazonaws.com/file/kiosk-editor/hashsnap-template.png"
+  },
+  "frame-left": {
+    type: "frame",
+    data: "https://hashsnap-static.s3.ap-northeast-2.amazonaws.com/kiosk-editor/221104_vktest_mini/template/frame3x4-1_1667870051714.png"
+  },
+  "frame-right": {
+    type: "frame",
+    data: "https://hashsnap-static.s3.ap-northeast-2.amazonaws.com/kiosk-editor/221104_vktest_mini/template/frame3x4-2_1667870051705.png"
+  },
+  'photo1': {
+    type: "image",
+    data: "https://media.hashsn.app/uploaded-posts/de575236-7361-45a0-8065-1b2c2906dda8.jpg",
+  },
+  'photo2': {
+    type: 'image',
+    data: "https://media.hashsn.app/uploaded-posts/1cf519ed-d10d-4ba6-ba3e-f736f3ca412a.jpg"
+  },
+  'photo3': {
+    type: 'image',
+    data: "https://media.hashsn.app/uploaded-posts/071a563e-8300-4dbf-b1a0-e0b2d0da530e.jpg"
+  }
 }
 
-const assetsMap: Map<string, (HTMLImageElement|null)> = new Map();
-const assetsLoad = Object.entries(assets).map(async (assets) => {
-  const [name, data] = assets;
-  const img = await loadImage(data) as HTMLImageElement;
-  assetsMap.set(name, img);
-  return [name, img];
-});
-await Promise.all(assetsLoad);
+const frameConfig = {
+  frame: [
+    {
+      assetName: 'frame-left',
+      width: 900,
+      height: 1200,
+      left: 0,
+      top: 0
+    },
+    {
+      assetName: 'frame-right',
+      width: 900,
+      height: 1200,
+      left: 900,
+      top: 0
+    }
+  ],
+  cropWidth: 1800,
+  cropHeight: 1200,
+  cropLeft: 0,
+  cropTop: 0,
+}
 
-const img = assetsMap.get('photo4') as HTMLImageElement;
-const frame1 = assetsMap.get('frame1') as HTMLImageElement;
-const frame2 = assetsMap.get('frame2') as HTMLImageElement;
-const frame3 = assetsMap.get('frame3') as HTMLImageElement;
+const main = async () => { try {
+  const assets = new Assets();
+  const assetsPromise = Object.entries(assetsConfig).map(async ([key, value]) => await assets.save(key, value));
+  await Promise.all(assetsPromise);
+  console.log(assets);
 
-const frameCanvas = [
-  frame1,
-  frame2,
-  frame3,
-].map((frame) => {
-  const photoConfig = { img, width: 932, height: 952, x: 134, y: 509 };
-  const framePhoto = new FramePhoto(photoConfig);
-  const canvas = Object.assign(document.createElement('canvas'), {width: 1200, height: 1800, style: 'width: 300px;'}) as HTMLCanvasElement;
+  const photo = assets.get('photo3')?.data as HTMLImageElement;
+  const halfFrame = frameConfig.frame.map((config) => {
+    const {assetName, width, height, left, top} = config;
+    const frame = assets.get(assetName)?.data;
+    return { img: frame.image, x: left, y: top, width, height, alphaRect: frame.alphaRect }
+  });
+
+  const canvas = Object.assign(document.createElement('canvas'), {width: frameConfig.cropWidth, height: frameConfig.cropHeight}) as HTMLCanvasElement;
   const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
-  ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
-  ctx.drawImage(framePhoto.canvas, photoConfig.x, photoConfig.y, photoConfig.width, photoConfig.height);
+  app.appendChild(canvas);
+
+  const frameCanvas = halfFrame.map(frame => {
+    const photoRect = {
+      x: frame.alphaRect.left,
+      y: frame.alphaRect.top,
+      width: frame.alphaRect.width + 1,
+      height: frame.alphaRect.height + 1,
+    };
+    const framePhoto = new FramePhoto({ img: photo, ...photoRect});
+    ctx.save();
+    ctx.translate(-frameConfig.cropLeft, -frameConfig.cropTop);
+    ctx.drawImage(framePhoto.canvas, (photoRect.x + frame.x), photoRect.y, photoRect.width, photoRect.height);
+    ctx.drawImage(frame.img, frame.x, frame.y, frame.width, frame.height);
+    ctx.restore();
+    return { ...frame, photo: framePhoto };
+  });
 
   addDragControl(canvas, {
     down: () => { return true },
     move: (ev) => {
-      framePhoto.drawImage({x: ev.dx, y: ev.dy});
-      ctx.clearRect(photoConfig.x, photoConfig.y, photoConfig.width, photoConfig.height);
-      ctx.drawImage(framePhoto.canvas, photoConfig.x, photoConfig.y, photoConfig.width, photoConfig.height);
+      frameCanvas.map(frame => {
+        const photoRect = {
+          x: frame.alphaRect.left,
+          y: frame.alphaRect.top,
+          width: frame.alphaRect.width + 1,
+          height: frame.alphaRect.height + 1,
+        };
+        frame.photo.drawImage({x: ev.dx, y: ev.dy});
+        ctx.clearRect((photoRect.x + frame.x), photoRect.y, photoRect.width, photoRect.height);
+        ctx.drawImage(frame.photo.canvas, (photoRect.x + frame.x), photoRect.y, photoRect.width, photoRect.height);
+      })
     },
-    up: () => {},
-  });
-  return canvas;
-});
-frameCanvas.forEach(canvas => app.appendChild(canvas));
+    up: () => {}
+  })
+} catch(e: any) {
+  console.error(e)
+}}
+main();
+
+// framePhoto.drawImage({x: ev.dx, y: ev.dy});
+// ctx.clearRect(photoConfig.x, photoConfig.y, photoConfig.width, photoConfig.height);
+// ctx.drawImage(framePhoto.canvas, photoConfig.x, photoConfig.y, photoConfig.width, photoConfig.height);

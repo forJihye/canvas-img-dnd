@@ -6,7 +6,7 @@ type PhotoConfig = {
   y: number;
 }
 
-export class FramePhoto {
+class FramePhoto {
   canvas!: HTMLCanvasElement;
   ctx!: CanvasRenderingContext2D;
   img!: HTMLImageElement;
@@ -99,15 +99,4 @@ export class FramePhoto {
   }
 }
 
-class FrameTransform {
-  frame: FramePhoto[] = [];
-  constructor() { }
-  push(frame: FramePhoto) {
-    this.frame.push(frame)
-  }
-  on() {
-    console.log(this.frame)
-  }
-}
-
-export default FrameTransform;
+export default FramePhoto;
